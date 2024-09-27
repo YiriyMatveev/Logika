@@ -1,0 +1,24 @@
+from PIL import Image
+from PIL import ImageFilter
+from PIL import ImageEnhance
+with Image.open('Image.jpg') as pic_orig:
+    pic_orig.show()
+    print('Розмір:' , pic_orig.size)
+    print('Формат:' , pic_orig.format)
+    print('Тип:' , pic_orig.mode)
+    pic_grey = pic_orig.convert('L')  #Створення чорно білої картинки
+    pic_grey.show()
+    pic_grey.save('Black.jpg')
+    pic_blured = pic_orig.filter(ImageFilter.BLUR) #блюр
+    pic_blured.show()
+    pic_blured.save('blured.jpg')
+    pic_up = pic_orig.transpose(Image.FLIP_LEFT_RIGHT) #обернене
+    pic_up.show()
+    pic_up.save('pic_orig')
+    pic_mirrow = pic_orig.transpose(Image.FLIP_LEFT_RIGHT) #Дзеркальне відображення 
+    pic_mirrow.save('mirrow.jpg')
+    pic_mirrow.show()
+    pic_contrast = ImageEnhance.Contrast(pic_orig) #Збільшення розмаїття
+    pic_contrast = pic_contrast.enhance(1.5)
+    pic_contrast.save('contr.jpg')
+    pic.contrast.show()
