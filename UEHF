@@ -1,44 +1,55 @@
-from PyQt5.QtCore import*
-from PyQt5.QtWidgets import*
-import os 
+# - підключення модулів
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QPixmap
+import os
 
+from PIL import Image,ImageFilter,ImageEnhance,ImageDraw, ImageFont
+
+
+# - об'єкт-додаток та вікно програми.
 app = QApplication([])
+
 win = QWidget()
 win.resize(700,500)
-win.setWindowTitle("Easy Editor")
+win.setWindowTitle('Easy Editor-by Yiriy')
+win.show()
 
-
-
+# Віджети - кнопки, надписи та список
 btn_file = QPushButton("Папка")
-btn_left = QPushButton("Ліво")
-btn_right = QPushButton("Право")
+btn_left = QPushButton("Ліворуч")
+btn_right = QPushButton("Праворуч")
 btn_mirror = QPushButton("Дзеркало")
 btn_sharp = QPushButton("Різкість")
 btn_blur = QPushButton("Розмиття")
 btn_black_white = QPushButton("Ч/Б")
+btn_invert = QPushButton("Конвертація")
+btn_crop_image = QPushButton("урожай")
 
-list_file = QListWidget()
 lbl_picture = QLabel("Картинка")
 
-v1 = QVBoxLayout()     #макет
-v2 = QVBoxLayout()
+list_file = QListWidget()        # список віддетів
 
+
+# Макет - Лінії
+v1 = QVBoxLayout()
+v2 = QVBoxLayout()
 h1 = QHBoxLayout()
 h2 = QHBoxLayout()
-
-
 main_layout = QHBoxLayout()
-v1.addWidget(btn_file)
+
+v1.addWidget(btn_file)         # у першому – кнопка вибору директорії та список файлів
 v1.addWidget(list_file)
 
-h1.addWidget(btn_file)
-h1.addWidget(btn_left)
+h1.addWidget(btn_left)         # кнопки з фільтрами
 h1.addWidget(btn_right)
 h1.addWidget(btn_mirror)
 h1.addWidget(btn_sharp)
 h1.addWidget(btn_black_white)
+h1.addWidget(btn_crop_image)
 
 h2.addWidget(btn_blur)
+h2.addWidget(btn_invert)
 
 v2.addWidget(lbl_picture)
 v2.addLayout(h1)
@@ -49,40 +60,306 @@ main_layout.addLayout(v2)
 
 win.setLayout(main_layout)
 
-#---------------------- Завдання 2 ------------------------------------------
-#зберігають шлях до папки
+win.setStyleSheet("color: red; background-color: #32f05b")
+btn_blur.setStyleSheet("color: #8084ba; background-color: #8ade99")
+btn_left.setStyleSheet("color: #851e3b; background-color: #347cbf")
+btn_right.setStyleSheet("color: #32dde3; background-color: #5d663b")
+btn_mirror.setStyleSheet("color: #336ecc ; background-color: #93b0ed")
+btn_invert.setStyleSheet("color: #41d92e; background-color: #cc7d41")
+btn_black_white.setStyleSheet("color:black ; background-color: white ")
+btn_sharp.setStyleSheet("color: #1053e3; background-color: #fcaa05")
+btn_file.setStyleSheet("color: #d11932; background-color: #262020 ")
 
+
+# -                                                                   [ Завдання №2 ]
+
+# - змінна для збереження імені папки
 workdir = ""
 
-
-#
-def chooseWorkdir():
+# - ---------------  функція вибору робочої папки
+def chooseWorkgir():
     global workdir
     workdir = QFileDialog.getExistingDirectory()
 
-
+# - --------------- Функція відбору імен файлів розширень
 def filter(filenames, extensions):
-    result = []                              #список для зберігання назв файлів
-    for filename in filename:
+    result = []
+    for filename in filenames:
         for ext in extensions:
-            if filename.andwsith(ext):
+            if filename.endswith(ext):
                 result.append(filename)
+    return result
 
-    return result            
-
-
-def showFilenames():
-    chooseWorkdir()
-    Extensions =(".jpg", ".png", ".jpeg", ".gif", ".bmp")
-    filename = filter(os.listdir,(workdir),extensions)
+# - --------------- Відповідає за вибір папки, відбір файлів та відображення їх у віджеті
+def showfilenamesList():
+    chooseWorkgir()
+    extensions = ['.jpg','.jpeg', '.png', '.gif', '.bmp']
+    filenames = filter(os.listdir(workdir), extensions)
     list_file.clear()
     for file in filenames:
         list_file.addItem(file)
 
 
-btn_file.clicked.connect(showFilenames)
+# -                                                                 [ Завдання №3 ]
+class ImageProcessor():
+
+    def __init__(self):
+        self.image = None
+        self.filename = None
+        self.dir = None
+        self.savedir = 'Modified/'
+
+    def loadImage(self,filename,dir):
+        self.filename = filename
+        self.dir = dir
+        image_path = os.path.join(dir,filename)
+        self.image = Image.open(image_path)
+
+    def showImage(self):
+        # Шлях до тимчасового зображення
+        temp_image_path = os.path.join(workdir, self.savedir, self.filename)
+        pixmapimage = QPixmap(temp_image_path)
+        w = lbl_picture.width()
+        h = lbl_picture.height()
+        pixmapimage = pixmapimage.scaled(w, h, Qt.KeepAspectRatio)
+        lbl_picture.setPixmap(pixmapimage)
+
+    def saveImage(self):
+        path = os.path.join(workdir, self.savedir)
+        if not os.path.exists(path):
+            os.mkdir(path)
+        image_path = os.path.join(path, self.filename)
+        self.image.save(image_path)
+
+    def do_bw(self):
+        self.image = self.image.convert("L")
+        self.saveImage()
+        self.showImage()
+
+    def do_mirror(self):
+        self.image = self.image.transpose(Image.FLIP_LEFT_RIGHT)
+        self.saveImage()
+        self.showImage()
+
+    def do_left(self):
+        self.image = self.image.transpose(Image.ROTATE_90)
+        self.saveImage()
+        self.showImage()
+
+    def do_right(self):
+        self.image = self.image.transpose(Image.ROTATE_270)
+        self.saveImage()
+        self.showImage()
+
+    def do_sharp(self):
+        self.image = self.image.filter(ImageFilter.SHARPEN)
+        self.saveImage()
+        self.showImage()
+
+    def do_blur(self):
+        self.image = self.image.filter(ImageFilter.BLUR)
+        self.saveImage()
+        self.showImage()
+
+    def do_invert(self):
+        self.image = Image.eval(self.image, lambda x: 255 - x)
+        self.saveImage()
+        self.showImage()
+
+    def crop_image(input_path, output_path, box):
+        with Image.open(input_path) as img:
+            img_cropped = img.crop(box)
+            img_cropped.save(output_path)
 
 
 
-win.show()
+workimage = ImageProcessor()
+
+def showSelectImage():
+    if list_file.selectedItems():
+        filename = list_file.selectedItems()[0].text()
+        workimage.loadImage(filename, workdir)
+        workimage.saveImage()  # Зберігаємо одразу оригінальне зображення в директорію "Modified"
+        workimage.showImage()  # Відображаємо зображення
+
+list_file.itemClicked.connect(showSelectImage)
+
+
+
+# Підключення Функції до кнопок
+btn_file.clicked.connect(showfilenamesList)
+
+
+btn_black_white.clicked.connect(workimage.do_bw)
+btn_mirror.clicked.connect(workimage.do_mirror)
+btn_left.clicked.connect(workimage.do_left)
+btn_right.clicked.connect(workimage.do_right)
+btn_sharp.clicked.connect(workimage.do_sharp)
+btn_blur.clicked.connect(workimage.do_blur)
+btn_invert.clicked.connect(workimage.do_invert)
+btn_crop_image.clicked.connect(workimage.crop_image)
+
+app.exec()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# --------------------------- Підключаємо бібліотеки
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import *
+import json
+
+# ---------------------------
+#   Вікно програми
+# --------------------------
+
+app = QApplication([])
+window = QWidget()
+main_widht = 800 
+main_height = 600
+window.resize(main_widht, main_height)
+window.setWindowTitle("Розумні нотатки")
+window.setStyleSheet('background-color:rgb(235, 231, 255);font-size:15px')
+
+# ---------------------------
+#     Eлементи інтерфейсу
+# ---------------------------
+
+text_editor = QTextEdit()              # Поле для введання тексту
+text_editor.setPlaceholderText('Ведіть текст........')
+
+list_widget_1 = QListWidget()          #Список заміток
+
+list_widget_2 = QListWidget()          #Список тегів
+
+text_searcher = QLineEdit()            #Пошук по тексту
+text_searcher.setPlaceholderText('Введіть текст.... ')
+
+tag_searcher = QLineEdit()             #Пошук по тегу
+tag_searcher.setPlaceholderText('Введіть тег......')
+
+
+# ---------------------------
+#     Eлементи інтерфейсу
+# ---------------------------
+
+make_note = QPushButton()
+make_note.setText("Створити замітку")
+
+delete_note = QPushButton()
+delete_note.setText("Видалити замітку")
+
+save_note = QPushButton()
+save_note.setText("Зберегти замітку")
+
+search_for_text = QPushButton()
+search_for_text.setText("Шукати замітку за текстом")
+
+search_for_tag = QPushButton()
+search_for_tag.setText("Шукати замітку за тегом")
+
+add_to_note = QPushButton()
+add_to_note.setText("Додати до замітки")
+
+unpin_to_note = QPushButton()
+unpin_to_note.setText("Відкріпити від замітки")
+
+action_theme_btn = QPushButton()
+action_theme_btn.setText("Змінити тему")
+
+# ---------------------------
+#     Розміщення на макеті
+# ---------------------------
+
+row1 = QHBoxLayout()
+row1.addWidget(make_note)
+row1.addWidget(delete_note)
+
+row2 = QHBoxLayout()
+row2.addWidget(add_to_note)
+row2.addWidget(unpin_to_note)
+
+col1 = QVBoxLayout()
+col1.addWidget(text_editor)
+
+col2 = QVBoxLayout()
+col2.addWidget(QLable("Список заміток"))
+col2.addWidget(list_widget_1)
+col2.addLayout(row1)
+col2.addWidget(save_note)
+
+col2.addWidget(QLable("Список тегів:"))
+col2.addWIdget(list_widget_2)
+col2.addWidget(QLable("Ввід данних:"))
+col2.addWidget(tag_searcher)
+col2.addWidget(text_searcher)
+col2.addLayout(row2)
+
+#Нижні 3 кнопки
+col2.addWidget(search_for_tag)
+col2a.addWidget(search_for_text)
+col2.addWidget(action_theme_btn)
+
+#Злиття
+layout_note = QHBoxLayout()
+layout_note.addLayout(col1)
+layout_note.addLayout(col2)
+
+#Макет на екран
+window.setLayout(layout)
+
+window.show()
 app.exec_()
